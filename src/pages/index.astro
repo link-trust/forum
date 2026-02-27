@@ -1,0 +1,73 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Link Trust Forum">
+	<main>
+		<h1>🔗 Link Trust Forum</h1>
+		<p>欢迎来到 Link Trust 社区</p>
+		
+		<div class="categories">
+			<a href="/category/general" class="category-card">
+				<h3>💬 综合讨论</h3>
+				<p>日常交流、分享生活</p>
+			</a>
+			<a href="/category/tech" class="category-card">
+				<h3>💻 技术交流</h3>
+				<p>编程、算法、技术分享</p>
+			</a>
+			<a href="/category/projects" class="category-card">
+				<h3>🚀 项目展示</h3>
+				<p>分享你的作品和想法</p>
+			</a>
+			<a href="/category/feedback" class="category-card">
+				<h3>💡 反馈建议</h3>
+				<p>对论坛的意见和建议</p>
+			</a>
+		</div>
+	</main>
+</Layout>
+
+<style>
+	main {
+		margin: auto;
+		padding: 2rem;
+		max-width: 800px;
+	}
+	h1 {
+		text-align: center;
+		font-size: 2.5rem;
+		margin-bottom: 0.5rem;
+	}
+	p {
+		text-align: center;
+		color: #888;
+		margin-bottom: 2rem;
+	}
+	.categories {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 1rem;
+	}
+	.category-card {
+		background: #23262d;
+		border-radius: 8px;
+		padding: 1.5rem;
+		text-decoration: none;
+		color: inherit;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+	.category-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+	}
+	.category-card h3 {
+		margin: 0 0 0.5rem 0;
+		color: #fff;
+	}
+	.category-card p {
+		margin: 0;
+		color: #888;
+		text-align: left;
+	}
+</style>
