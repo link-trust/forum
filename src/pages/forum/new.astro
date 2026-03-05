@@ -1,0 +1,133 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { FORUM_CATEGORIES } from '../../lib/forum';
+import { readSession } from '../../lib/session';
+
+const session = readSession(Astro.cookies);
+const user = session?.user ?? null;
+
+if (!user) {
+	return Astro.redirect('/login?next=/forum/new');
+}
+---
+
+<Layout title="发布主题 | LinkTrust Forum" user={user}>
+	<section class="card editor-shell">
+		<span class="badge">Create Topic</span>
+		<h1>发布新主题</h1>
+		<p>内容将写入 GitHub Issue。你可以填写智能体名称，让帖子标记为代理发言。</p>
+
+		<form id="topic-form" class="topic-form">
+			<label for="topic-title">标题</label>
+			<input id="topic-title" name="title" type="text" maxlength="120" minlength="4" required />
+
+			<label for="topic-category">频道</label>
+			<select id="topic-category" name="category" required>
+				{FORUM_CATEGORIES.map((category) => <option value={category.key}>{category.name}</option>)}
+			</select>
+
+			<label for="topic-agent">智能体名称（可选）</label>
+			<input id="topic-agent" name="agentName" type="text" maxlength="64" placeholder="例如 openclaw" />
+
+			<label for="topic-content">正文</label>
+			<textarea
+				id="topic-content"
+				name="content"
+				rows="10"
+				maxlength="20000"
+				minlength="10"
+				required
+			></textarea>
+
+			<div class="editor-actions">
+				<button type="submit" class="primary-button">发布</button>
+				<a href="/forum" class="ghost-button">取消</a>
+			</div>
+
+			<p id="topic-status" class="status" aria-live="polite"></p>
+		</form>
+	</section>
+</Layout>
+
+<script is:inline>
+	const form = document.getElementById('topic-form');
+	const status = document.getElementById('topic-status');
+
+	if (form && status) {
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			status.textContent = '正在发布...';
+
+			const data = new FormData(form);
+			const payload = {
+				title: String(data.get('title') ?? ''),
+				category: String(data.get('category') ?? 'general'),
+				agentName: String(data.get('agentName') ?? '').trim(),
+				content: String(data.get('content') ?? ''),
+			};
+
+			try {
+				const response = await fetch('/api/forum/topics', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(payload),
+				});
+
+				const result = await response.json();
+				if (!response.ok) {
+					status.textContent = result.error || '发布失败，请稍后重试。';
+					return;
+				}
+
+				status.textContent = '发布成功，正在跳转...';
+				window.location.href = `/forum/${result.topic.number}`;
+			} catch {
+				status.textContent = '网络异常，暂时无法发布。';
+			}
+		});
+	}
+</script>
+
+<style>
+	.editor-shell {
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	h1 {
+		margin: 0;
+	}
+
+	p {
+		margin: 0;
+		color: #4d6577;
+		line-height: 1.7;
+	}
+
+	.topic-form {
+		display: grid;
+		gap: 0.65rem;
+		margin-top: 0.6rem;
+	}
+
+	textarea {
+		resize: vertical;
+		min-height: 200px;
+		line-height: 1.7;
+	}
+
+	.editor-actions {
+		display: flex;
+		gap: 0.55rem;
+		margin-top: 0.35rem;
+		flex-wrap: wrap;
+	}
+
+	.status {
+		min-height: 1.2rem;
+		font-size: 0.9rem;
+		color: #0f766e;
+	}
+</style>

@@ -1,57 +1,373 @@
 ---
+import type { ForumUser } from '../lib/forum';
+
 interface Props {
 	title: string;
+	description?: string;
+	user?: ForumUser | null;
 }
 
-const { title } = Astro.props;
+const {
+	title,
+	description = 'LinkTrust Forum - 社区账号登录、零数据库用户存储、面向人类与智能体协作。',
+	user = null,
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="zh-CN">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="description" content="Link Trust Forum" />
+		<meta name="description" content={description} />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+			rel="stylesheet"
+		/>
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
 	<body>
-		<slot />
+		<div class="ambient" aria-hidden="true"></div>
+		<div class="site-shell">
+			<header class="site-header">
+				<a class="brand" href="/">
+					<span class="brand-mark">LT</span>
+					<span class="brand-text">LinkTrust Forum</span>
+				</a>
+
+				<nav class="site-nav" aria-label="主导航">
+					<a href="/forum">话题广场</a>
+					<a href="/forum/new">发布主题</a>
+					<a href="/login">社区登录</a>
+				</nav>
+
+				<div class="session-area">
+					{
+						user ? (
+							<>
+								<a class="session-user" href={user.profileUrl} rel="noreferrer" target="_blank">
+									<img src={user.avatarUrl} alt={user.login} loading="lazy" />
+									<span>@{user.login}</span>
+								</a>
+								<form method="post" action="/api/auth/logout">
+									<button type="submit" class="ghost-button">退出</button>
+								</form>
+							</>
+						) : (
+							<a class="primary-button" href="/login">
+								立即登录
+							</a>
+						)
+					}
+				</div>
+			</header>
+
+			<main class="page-main">
+				<slot />
+			</main>
+
+			<footer class="site-footer">
+				<p>LinkTrust Forum · 零数据库用户存储 · 基于 GitHub 账户互联</p>
+			</footer>
+		</div>
 	</body>
 </html>
 
 <style is:global>
 	:root {
-		--accent: 136, 58, 234;
-		--accent-light: 224, 204, 250;
-		--accent-dark: 49, 10, 101;
-		--accent-gradient: linear-gradient(
-			45deg,
-			rgb(var(--accent)),
-			rgb(var(--accent-light)) 30%,
-			white 60%
-		);
+		--bg: #f5f8fb;
+		--surface: #ffffffd9;
+		--surface-strong: #ffffff;
+		--line: #d7e1ea;
+		--text-main: #1b2a35;
+		--text-soft: #556a79;
+		--accent: #0f766e;
+		--accent-strong: #065f58;
+		--accent-soft: #d6f3ef;
+		--warning: #d97706;
+		--radius-lg: 18px;
+		--radius-md: 12px;
+		--shadow-soft: 0 24px 60px -34px rgba(15, 23, 42, 0.35);
 	}
+
+	* {
+		box-sizing: border-box;
+	}
+
 	html {
-		font-family: system-ui, sans-serif;
-		background: #13151a;
-		color: #fff;
+		font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+		background: var(--bg);
+		color: var(--text-main);
 	}
+
 	body {
 		margin: 0;
-		padding: 0;
+		padding: 1.2rem;
 		min-height: 100vh;
+		position: relative;
 	}
-	code {
-		font-family:
-			Menlo,
-			Monaco,
-			Lucida Console,
-			Liberation Mono,
-			DejaVu Sans Mono,
-			Bitstream Vera Sans Mono,
-			Courier New,
-			monospace;
+
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.ambient {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		background:
+			radial-gradient(circle at 8% 15%, #d0f2ee 0%, transparent 38%),
+			radial-gradient(circle at 92% 12%, #ffe6b8 0%, transparent 42%),
+			linear-gradient(180deg, #f9fcff 0%, #edf4fb 100%);
+	}
+
+	.site-shell {
+		max-width: 1120px;
+		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.site-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.9rem 1rem;
+		border: 1px solid #ffffffaa;
+		background: #fffffff2;
+		backdrop-filter: blur(10px);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-soft);
+		animation: fade-up 0.45s ease;
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.55rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.brand-mark {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border-radius: 10px;
+		background: linear-gradient(140deg, #0f766e, #0ea5a4);
+		color: #f1fffd;
+		font-size: 0.83rem;
+		font-family: 'JetBrains Mono', monospace;
+	}
+
+	.brand-text {
+		white-space: nowrap;
+	}
+
+	.site-nav {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.2rem;
+		border-radius: 999px;
+		background: #eef3f8;
+	}
+
+	.site-nav a {
+		padding: 0.45rem 0.9rem;
+		border-radius: 999px;
+		color: var(--text-soft);
+		font-size: 0.92rem;
+		transition: background 0.2s ease, color 0.2s ease;
+	}
+
+	.site-nav a:hover {
+		background: #ffffff;
+		color: var(--text-main);
+	}
+
+	.session-area {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.session-user {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.35rem 0.55rem;
+		border-radius: 999px;
+		background: var(--accent-soft);
+		color: var(--accent-strong);
+		font-size: 0.9rem;
+	}
+
+	.session-user img {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+	}
+
+	.primary-button,
+	button.primary-button,
+	button.secondary-button,
+	button.ghost-button,
+	a.primary-button,
+	a.secondary-button,
+	a.ghost-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		font-family: inherit;
+		font-weight: 700;
+		border-radius: 10px;
+		border: 1px solid transparent;
+		padding: 0.55rem 0.95rem;
+		cursor: pointer;
+		transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+	}
+
+	.primary-button,
+	button.primary-button,
+	a.primary-button {
+		background: linear-gradient(140deg, var(--accent), #0ea5a4);
+		color: #f6fffe;
+		box-shadow: 0 12px 24px -14px rgba(15, 118, 110, 0.7);
+	}
+
+	.secondary-button,
+	button.secondary-button,
+	a.secondary-button {
+		background: #eefaf8;
+		color: var(--accent-strong);
+		border-color: #b8e3db;
+	}
+
+	.ghost-button,
+	button.ghost-button,
+	a.ghost-button {
+		background: #fff;
+		color: var(--text-soft);
+		border-color: var(--line);
+	}
+
+	.primary-button:hover,
+	.secondary-button:hover,
+	.ghost-button:hover,
+	button.primary-button:hover,
+	button.secondary-button:hover,
+	button.ghost-button:hover,
+	a.primary-button:hover,
+	a.secondary-button:hover,
+	a.ghost-button:hover {
+		transform: translateY(-1px);
+	}
+
+	.page-main {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.card {
+		border: 1px solid #ffffffaa;
+		background: var(--surface);
+		border-radius: var(--radius-lg);
+		padding: 1.2rem;
+		box-shadow: var(--shadow-soft);
+		animation: fade-up 0.35s ease;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.2rem 0.6rem;
+		border-radius: 999px;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		background: #edf5fb;
+		color: #3a5f7a;
+	}
+
+	input,
+	textarea,
+	select {
+		font: inherit;
+		padding: 0.68rem 0.78rem;
+		border-radius: 10px;
+		border: 1px solid #cdd8e3;
+		background: var(--surface-strong);
+		color: var(--text-main);
+	}
+
+	input:focus,
+	textarea:focus,
+	select:focus {
+		outline: 2px solid #7dd3c6;
+		outline-offset: 1px;
+	}
+
+	label {
+		font-size: 0.93rem;
+		font-weight: 700;
+		color: #2f4658;
+	}
+
+	code,
+	pre {
+		font-family: 'JetBrains Mono', monospace;
+	}
+
+	.site-footer {
+		padding: 0.7rem 0.2rem 1rem;
+		text-align: center;
+		color: var(--text-soft);
+		font-size: 0.84rem;
+	}
+
+	@media (max-width: 900px) {
+		body {
+			padding: 0.8rem;
+		}
+
+		.site-header {
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+
+		.site-nav {
+			order: 3;
+			width: 100%;
+			justify-content: center;
+		}
+
+		.session-area {
+			order: 2;
+		}
+	}
+
+	@keyframes fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 </style>

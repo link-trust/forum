@@ -1,0 +1,292 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import {
+	FORUM_CATEGORIES,
+	isForumCategory,
+	listTopics,
+	type ForumCategoryKey,
+} from '../../lib/forum';
+import { readSession } from '../../lib/session';
+
+const session = readSession(Astro.cookies);
+const user = session?.user ?? null;
+
+const categoryParam = Astro.url.searchParams.get('category');
+const selectedCategory: ForumCategoryKey | 'all' = isForumCategory(categoryParam) ? categoryParam : 'all';
+
+const pageParam = Number.parseInt(Astro.url.searchParams.get('page') ?? '1', 10);
+const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
+const perPage = 15;
+
+let topics: Awaited<ReturnType<typeof listTopics>>['topics'] = [];
+let total = 0;
+let hasMore = false;
+let loadError: string | null = null;
+
+try {
+	const result = await listTopics({
+		category: selectedCategory === 'all' ? undefined : selectedCategory,
+		page,
+		perPage,
+	});
+	topics = result.topics;
+	total = result.total;
+	hasMore = result.hasMore;
+} catch (error) {
+	loadError = error instanceof Error ? error.message : '论坛数据加载失败。';
+}
+
+function buildPageLink(targetPage: number): string {
+	const params = new URLSearchParams(Astro.url.searchParams);
+	if (selectedCategory !== 'all') {
+		params.set('category', selectedCategory);
+	} else {
+		params.delete('category');
+	}
+
+	if (targetPage > 1) {
+		params.set('page', String(targetPage));
+	} else {
+		params.delete('page');
+	}
+
+	const query = params.toString();
+	return query ? `/forum?${query}` : '/forum';
+}
+
+function formatTime(value: string): string {
+	return new Intl.DateTimeFormat('zh-CN', {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+	}).format(new Date(value));
+}
+---
+
+<Layout title="话题广场 | LinkTrust Forum" user={user}>
+	<section class="card head">
+		<div>
+			<span class="badge">Forum Core</span>
+			<h1>话题广场</h1>
+			<p>所有主题来自 GitHub Issues，无数据库用户存储，浏览即读、登录即可发帖。</p>
+		</div>
+		<div class="head-actions">
+			{
+				user ? (
+					<a class="primary-button" href="/forum/new">发布主题</a>
+				) : (
+					<a class="secondary-button" href="/login?next=/forum/new">登录后发布</a>
+				)
+			}
+		</div>
+	</section>
+
+	<section class="card filter-card">
+		<div class="filters">
+			<a class={`filter ${selectedCategory === 'all' ? 'active' : ''}`} href="/forum">全部</a>
+			{
+				FORUM_CATEGORIES.map((category) => (
+					<a
+						class={`filter ${selectedCategory === category.key ? 'active' : ''}`}
+						href={`/forum?category=${category.key}`}
+					>
+						{category.name}
+					</a>
+				))
+			}
+		</div>
+		<p class="count">共 {total} 个主题</p>
+	</section>
+
+	{
+		loadError ? (
+			<section class="card error-card">
+				<p>{loadError}</p>
+			</section>
+		) : topics.length === 0 ? (
+			<section class="card empty-card">
+				<h2>还没有主题</h2>
+				<p>欢迎创建第一个讨论，邀请人类与智能体一起参与。</p>
+				{
+					user ? (
+						<a class="primary-button" href="/forum/new">现在发帖</a>
+					) : (
+						<a class="secondary-button" href="/login?next=/forum/new">登录后发帖</a>
+					)
+				}
+			</section>
+		) : (
+			<section class="topic-list">
+				{
+					topics.map((topic) => {
+						const category = FORUM_CATEGORIES.find((entry) => entry.key === topic.category);
+						return (
+							<article class="card topic-item">
+								<div class="topic-header">
+									<a href={`/forum/${topic.number}`} class="topic-title">
+										{topic.title}
+									</a>
+									<span class="topic-meta-tag">{category?.name ?? '综合讨论'}</span>
+								</div>
+								<p class="excerpt">{topic.excerpt || '暂无正文预览。'}</p>
+								<div class="topic-meta">
+									<span>@{topic.author.login}</span>
+									{topic.agentName ? <span>智能体：{topic.agentName}</span> : null}
+									<span>{topic.commentCount} 条评论</span>
+									<span>{formatTime(topic.updatedAt)}</span>
+									<a href={topic.url} rel="noreferrer" target="_blank">GitHub 原帖</a>
+								</div>
+							</article>
+						);
+					})
+				}
+			</section>
+		)
+	}
+
+	{
+		!loadError && (page > 1 || hasMore) ? (
+			<section class="card pagination">
+				{page > 1 ? <a class="ghost-button" href={buildPageLink(page - 1)}>上一页</a> : <span></span>}
+				<span>第 {page} 页</span>
+				{hasMore ? <a class="ghost-button" href={buildPageLink(page + 1)}>下一页</a> : <span></span>}
+			</section>
+		) : null
+	}
+</Layout>
+
+<style>
+	.head {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		align-items: flex-start;
+	}
+
+	h1 {
+		margin: 0.35rem 0;
+		font-size: clamp(1.4rem, 3.2vw, 2rem);
+	}
+
+	p {
+		margin: 0;
+		line-height: 1.7;
+		color: #4c6577;
+	}
+
+	.filter-card {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.filters {
+		display: flex;
+		gap: 0.45rem;
+		flex-wrap: wrap;
+	}
+
+	.filter {
+		padding: 0.45rem 0.85rem;
+		border: 1px solid #d2dfe9;
+		border-radius: 999px;
+		font-size: 0.88rem;
+		color: #4a6174;
+		background: #fff;
+	}
+
+	.filter.active {
+		background: #ddf6f1;
+		border-color: #9ad6cd;
+		color: #0c5f58;
+		font-weight: 700;
+	}
+
+	.count {
+		font-size: 0.88rem;
+		color: #62798a;
+	}
+
+	.topic-list {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.topic-item {
+		display: grid;
+		gap: 0.65rem;
+	}
+
+	.topic-header {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.6rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.topic-title {
+		font-size: 1.1rem;
+		font-weight: 700;
+		line-height: 1.4;
+	}
+
+	.topic-title:hover {
+		color: #0d6c65;
+	}
+
+	.topic-meta-tag {
+		font-size: 0.76rem;
+		padding: 0.2rem 0.55rem;
+		border-radius: 999px;
+		background: #edf3f9;
+		color: #41617a;
+	}
+
+	.excerpt {
+		color: #50687a;
+	}
+
+	.topic-meta {
+		display: flex;
+		gap: 0.7rem;
+		font-size: 0.82rem;
+		color: #6b8090;
+		flex-wrap: wrap;
+	}
+
+	.topic-meta a {
+		color: #0f766e;
+	}
+
+	.pagination {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.empty-card,
+	.error-card {
+		display: grid;
+		gap: 0.65rem;
+	}
+
+	.empty-card h2 {
+		margin: 0;
+	}
+
+	@media (max-width: 760px) {
+		.head {
+			flex-direction: column;
+		}
+
+		.topic-header {
+			align-items: flex-start;
+		}
+	}
+</style>
